@@ -84,12 +84,11 @@ class CNNVAE(object):
                                                      [5, 5],
                                                      (2, 2),
                                                      padding='SAME',
-                                                     activation_fn=tf.nn.sigmoid,
-                                                     normalizer_fn=tf.contrib.layers.batch_norm)
+                                                     activation_fn=tf.nn.sigmoid)
 
             self.reconstruction = net
 
-            self.cost = tf.reduce_sum(tf.pow(tf.subtract(self.reconstruction, self.x), 2.0))
+            self.cost = tf.reduce_mean(tf.pow(tf.subtract(self.reconstruction, self.x), 2.0))
             optimizer = tf.train.AdamOptimizer(self.lr)
             self.optimizer = optimizer.minimize(self.cost)
 
