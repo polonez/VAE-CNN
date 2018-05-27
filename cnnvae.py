@@ -120,5 +120,4 @@ class CNNVAE(object):
         cost, _, summary = self.sess.run(
             (self.cost, self.optimizer, self.merged_summary_op),
             feed_dict={self.x: x})
-        self.summary_writer.add_summary(summary, global_step=epoch)
-        return cost
+        return cost, summary

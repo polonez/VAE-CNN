@@ -40,12 +40,16 @@ saver = tf.train.Saver()
 for epoch in range(training_epochs):
     avg_cost = 0.
     total_batch = int(n_samples / batch_size)
-    # Loop over all batches
+
+    summary = None
     for i in range(total_batch):
         batch_xs = splitted_train_data[
             np.random.randint(0, len(splitted_train_data))]
-        cost = vae.partial_fit(batch_xs, epoch)
-        avg_cost += cost / n_samples
+        cost, summary = vae.partial_fit(batch_xs, epoch)
+        avg_cost += cost * batch_size / n_samples
+
+    if summary is not None:
+        vae.summary_writer.add_summary(summary, global_step=epoch)
 
     # Display logs per epoch step
     if epoch % display_step == 0:
