@@ -48,12 +48,14 @@ class CNNVAE(object):
                                                        100,
                                                        activation_fn=tf.nn.tanh)
 
+        tf.summary.tensor_summary('latent_vector', self.z)
+
         with tf.variable_scope('decoder', reuse=tf.AUTO_REUSE):
             net = tf.contrib.layers.fully_connected(self.z,
                                                     4 * 4 * 256,
-                                                    activation_fn=None)
+                                                    activation_fn=None,
+                                                    normalizer_fn=tf.contrib.layers.batch_norm)
             net = tf.reshape(net, [-1, 4, 4, 256])
-            net = tf.layers.batch_normalization(net)
 
             net = tf.contrib.layers.conv2d_transpose(net,
                                                      256,
@@ -99,9 +101,7 @@ class CNNVAE(object):
             tf.summary.image('original_image', self.x)
             tf.summary.image('reconstructed_image', self.reconstruction)
             self.merged_summary_op = tf.summary.merge_all()
-            self.summary_writer = tf.summary.FileWriter(
-                logdir,
-                graph=tf.get_default_graph())
+            self.summary_writer = tf.summary.FileWriter(logdir, graph=tf.get_default_graph())
 
     def resize_image(self, x):
         return self.sess.run(self.x, feed_dict={self.x: x})
