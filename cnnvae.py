@@ -11,31 +11,42 @@ class CNNVAE(object):
         self.x = tf.placeholder(tf.float32, [None, 64, 64, 3])
         self.lr = lr
         with tf.variable_scope('encoder', reuse=tf.AUTO_REUSE):
-            net = tf.layers.conv2d(self.x, 64, [5, 5], (2, 2), padding='SAME',
-                                   kernel_initializer=tf.random_normal_initializer(stddev=0.05))
-            net = tf.layers.batch_normalization(net, training=True)
-            net = lrelu(net)
+            net = tf.contrib.layers.conv2d(self.x,
+                                           64,
+                                           [5, 5],
+                                           (2, 2),
+                                           padding='SAME',
+                                           activation_fn=lrelu,
+                                           normalizer_fn=tf.contrib.layers.batch_norm)
 
-            net = tf.layers.conv2d(net, 128, [5, 5], (2, 2), padding='SAME',
-                                   kernel_initializer=tf.random_normal_initializer(stddev=0.05))
-            net = tf.layers.batch_normalization(net, training=True)
-            net = lrelu(net)
+            net = tf.contrib.layers.conv2d(net,
+                                           128,
+                                           [5, 5],
+                                           (2, 2),
+                                           padding='SAME',
+                                           activation_fn=lrelu,
+                                           normalizer_fn=tf.contrib.layers.batch_norm)
 
-            net = tf.layers.conv2d(net, 256, [5, 5], (2, 2), padding='SAME',
-                                   kernel_initializer=tf.random_normal_initializer(stddev=0.05))
-            net = tf.layers.batch_normalization(net, training=True)
-            net = lrelu(net)
+            net = tf.contrib.layers.conv2d(net,
+                                           256,
+                                           [5, 5],
+                                           (2, 2),
+                                           padding='SAME',
+                                           activation_fn=lrelu,
+                                           normalizer_fn=tf.contrib.layers.batch_norm)
 
-            net = tf.layers.conv2d(net, 256, [5, 5], (2, 2), padding='SAME',
-                                   kernel_initializer=tf.random_normal_initializer(stddev=0.05))
-            net = tf.layers.batch_normalization(net, training=True)
-            net = lrelu(net)
+            net = tf.contrib.layers.conv2d(net,
+                                           256,
+                                           [5, 5],
+                                           (2, 2),
+                                           padding='SAME',
+                                           activation_fn=lrelu,
+                                           normalizer_fn=tf.contrib.layers.batch_norm)
 
             net = tf.contrib.layers.flatten(net)
             self.z = tf.contrib.layers.fully_connected(net,
                                                        100,
-                                                       activation_fn=tf.nn.tanh,
-                                                       weights_regularizer=tf.contrib.layers.l2_regularizer(1e-8))
+                                                       activation_fn=tf.nn.tanh)
 
         with tf.variable_scope('decoder', reuse=tf.AUTO_REUSE):
             net = tf.contrib.layers.fully_connected(self.z,
@@ -44,26 +55,37 @@ class CNNVAE(object):
             net = tf.reshape(net, [-1, 4, 4, 256])
             net = tf.layers.batch_normalization(net)
 
-            net = tf.layers.conv2d_transpose(net, 256, [5, 5], (2, 2), 'SAME',
-                                             kernel_initializer=tf.random_normal_initializer(stddev=0.05))
-#                                              kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-8))
-            net = tf.layers.batch_normalization(net)
-            net = tf.nn.relu(net)
+            net = tf.contrib.layers.conv2d_transpose(net,
+                                                     256,
+                                                     [5, 5],
+                                                     (2, 2),
+                                                     padding='SAME',
+                                                     activation_fn=lrelu,
+                                                     normalizer_fn=tf.contrib.layers.batch_norm)
 
-            net = tf.layers.conv2d_transpose(net, 128, [5, 5], (2, 2), 'SAME',
-                                             kernel_initializer=tf.random_normal_initializer(stddev=0.05))
-            net = tf.layers.batch_normalization(net)
-            net = tf.nn.relu(net)
+            net = tf.contrib.layers.conv2d_transpose(net,
+                                                     128,
+                                                     [5, 5],
+                                                     (2, 2),
+                                                     padding='SAME',
+                                                     activation_fn=lrelu,
+                                                     normalizer_fn=tf.contrib.layers.batch_norm)
 
-            net = tf.layers.conv2d_transpose(net, 64, [5, 5], (2, 2), 'SAME',
-                                             kernel_initializer=tf.random_normal_initializer(stddev=0.05))
-            net = tf.layers.batch_normalization(net)
-            net = tf.nn.relu(net)
+            net = tf.contrib.layers.conv2d_transpose(net,
+                                                     64,
+                                                     [5, 5],
+                                                     (2, 2),
+                                                     padding='SAME',
+                                                     activation_fn=lrelu,
+                                                     normalizer_fn=tf.contrib.layers.batch_norm)
 
-            net = tf.layers.conv2d_transpose(net, 3, [5, 5], (2, 2), 'SAME',
-                                             kernel_initializer=tf.random_normal_initializer(stddev=0.05))
-            net = tf.layers.batch_normalization(net)
-            net = tf.nn.sigmoid(net)
+            net = tf.contrib.layers.conv2d_transpose(net,
+                                                     3,
+                                                     [5, 5],
+                                                     (2, 2),
+                                                     padding='SAME',
+                                                     activation_fn=tf.nn.sigmoid,
+                                                     normalizer_fn=tf.contrib.layers.batch_norm)
 
             self.reconstruction = net
 
