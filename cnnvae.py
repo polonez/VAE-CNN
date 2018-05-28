@@ -1,4 +1,5 @@
 import tensorflow as tf
+import numpy as np
 
 
 def lrelu(x, alpha=0.1):
@@ -6,21 +7,14 @@ def lrelu(x, alpha=0.1):
 
 
 class CNNVAE(object):
-    def __init__(self, lr=1e-4, logdir='/tmp/cnnvae/'):
+    def __init__(self, lr=1e-4, latent_dim=100, logdir='/tmp/cnnvae/'):
         self.sess = tf.Session()
         self.x = tf.placeholder(tf.float32, [None, 64, 64, 3])
         self.lr = lr
+        self.latent_dim = latent_dim
         self.logdir = logdir
         with tf.variable_scope('encoder', reuse=tf.AUTO_REUSE):
             net = tf.contrib.layers.conv2d(self.x,
-                                           64,
-                                           [5, 5],
-                                           (2, 2),
-                                           padding='SAME',
-                                           activation_fn=lrelu,
-                                           normalizer_fn=tf.contrib.layers.batch_norm)
-
-            net = tf.contrib.layers.conv2d(net,
                                            128,
                                            [5, 5],
                                            (2, 2),
@@ -37,7 +31,15 @@ class CNNVAE(object):
                                            normalizer_fn=tf.contrib.layers.batch_norm)
 
             net = tf.contrib.layers.conv2d(net,
-                                           256,
+                                           512,
+                                           [5, 5],
+                                           (2, 2),
+                                           padding='SAME',
+                                           activation_fn=lrelu,
+                                           normalizer_fn=tf.contrib.layers.batch_norm)
+
+            net = tf.contrib.layers.conv2d(net,
+                                           1024,
                                            [5, 5],
                                            (2, 2),
                                            padding='SAME',
@@ -45,16 +47,30 @@ class CNNVAE(object):
                                            normalizer_fn=tf.contrib.layers.batch_norm)
 
             net = tf.contrib.layers.flatten(net)
-            self.z = tf.contrib.layers.fully_connected(net,
-                                                       100,
-                                                       activation_fn=tf.nn.tanh)
+
+            net = tf.contrib.layers.fully_connected(net,
+                                                    2 * latent_dim,
+                                                    activation_fn=tf.nn.tanh)
+            z_mean = net[:, :latent_dim]
+            z_sigma = tf.nn.softplus(net[:, latent_dim:])
+            self.z = tf.distributions.Normal(loc=z_mean, scale=z_sigma)
+
+        assert self.z.reparameterization_type == tf.distributions.FULLY_REPARAMETERIZED
 
         with tf.variable_scope('decoder', reuse=tf.AUTO_REUSE):
-            net = tf.contrib.layers.fully_connected(self.z,
-                                                    4 * 4 * 256,
+            net = tf.contrib.layers.fully_connected(self.z.sample(),
+                                                    4 * 4 * 1024,
                                                     activation_fn=None,
                                                     normalizer_fn=tf.contrib.layers.batch_norm)
-            net = tf.reshape(net, [-1, 4, 4, 256])
+            net = tf.reshape(net, [-1, 4, 4, 1024])
+
+            net = tf.contrib.layers.conv2d_transpose(net,
+                                                     512,
+                                                     [5, 5],
+                                                     (2, 2),
+                                                     padding='SAME',
+                                                     activation_fn=lrelu,
+                                                     normalizer_fn=tf.contrib.layers.batch_norm)
 
             net = tf.contrib.layers.conv2d_transpose(net,
                                                      256,
@@ -73,14 +89,6 @@ class CNNVAE(object):
                                                      normalizer_fn=tf.contrib.layers.batch_norm)
 
             net = tf.contrib.layers.conv2d_transpose(net,
-                                                     64,
-                                                     [5, 5],
-                                                     (2, 2),
-                                                     padding='SAME',
-                                                     activation_fn=lrelu,
-                                                     normalizer_fn=tf.contrib.layers.batch_norm)
-
-            net = tf.contrib.layers.conv2d_transpose(net,
                                                      3,
                                                      [5, 5],
                                                      (2, 2),
@@ -90,13 +98,17 @@ class CNNVAE(object):
             self.reconstruction = net
 
             self.cost = tf.reduce_mean(tf.pow(tf.subtract(self.reconstruction, self.x), 2.0))
+            normdist = tf.distributions.Normal(loc=np.zeros(latent_dim, dtype=np.float32),
+                                               scale=np.ones(latent_dim, dtype=np.float32))
+            self.KL_divergence = tf.reduce_mean(tf.distributions.kl_divergence(self.z, normdist))
             optimizer = tf.train.AdamOptimizer(self.lr)
-            self.optimizer = optimizer.minimize(self.cost)
+            self.optimizer = optimizer.minimize(self.cost + self.KL_divergence)
 
         self.sess.run(tf.global_variables_initializer())
 
         with tf.name_scope('summaries'):
             tf.summary.scalar('loss', self.cost)
+            tf.summary.scalar('KL_divergence', self.KL_divergence)
             tf.summary.image('original_image', self.x)
             # tf.summary.tensor_summary('latent_vector', self.z)
             tf.summary.image('reconstructed_image', self.reconstruction)
@@ -125,7 +137,7 @@ class CNNVAE(object):
         return self.sess.run(self.reconstruction, feed_dict={self.x: x})
 
     def partial_fit(self, x, epoch):
-        cost, _, summary = self.sess.run(
-            (self.cost, self.optimizer, self.merged_summary_op),
+        cost, _, kl_divergence, summary = self.sess.run(
+            (self.cost, self.optimizer, self.KL_divergence, self.merged_summary_op),
             feed_dict={self.x: x})
-        return cost, summary
+        return cost, kl_divergence, summary
