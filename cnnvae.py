@@ -10,6 +10,7 @@ class CNNVAE(object):
         self.sess = tf.Session()
         self.x = tf.placeholder(tf.float32, [None, 64, 64, 3])
         self.lr = lr
+        self.logdir = logdir
         with tf.variable_scope('encoder', reuse=tf.AUTO_REUSE):
             net = tf.contrib.layers.conv2d(self.x,
                                            64,
@@ -47,8 +48,6 @@ class CNNVAE(object):
             self.z = tf.contrib.layers.fully_connected(net,
                                                        100,
                                                        activation_fn=tf.nn.tanh)
-
-        tf.summary.tensor_summary('latent_vector', self.z)
 
         with tf.variable_scope('decoder', reuse=tf.AUTO_REUSE):
             net = tf.contrib.layers.fully_connected(self.z,
@@ -99,9 +98,19 @@ class CNNVAE(object):
         with tf.name_scope('summaries'):
             tf.summary.scalar('loss', self.cost)
             tf.summary.image('original_image', self.x)
+            # tf.summary.tensor_summary('latent_vector', self.z)
             tf.summary.image('reconstructed_image', self.reconstruction)
+            # tf.summary.image('diff_image', tf.subtract(self.reconstruction, self.x)
             self.merged_summary_op = tf.summary.merge_all()
             self.summary_writer = tf.summary.FileWriter(logdir, graph=tf.get_default_graph())
+
+        self.saver = tf.train.Saver()
+
+    def restore(self):
+        tf.reset_default_graph()
+        latest_checkpoint = tf.train.latest_checkpoint(self.logdir)
+        if latest_checkpoint is not None:
+            self.saver.restore(self.sess, latest_checkpoint)
 
     def resize_image(self, x):
         return self.sess.run(self.x, feed_dict={self.x: x})

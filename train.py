@@ -33,9 +33,9 @@ X_train = [imageio.imread(path) for path in tqdm(X_train_data)]
 X_train = min_max_scale(np.array(X_train).astype(np.float32))
 splitted_train_data = np.array_split(X_train, n_samples // batch_size)
 
-logdir = '/tmp/cnnae/'
+logdir = '/tmp/ae-cnn/'
 vae = CNNVAE(lr=3e-6, logdir=logdir)
-saver = tf.train.Saver()
+vae.restore()
 
 for epoch in range(training_epochs):
     avg_cost = 0.
@@ -54,5 +54,6 @@ for epoch in range(training_epochs):
     # Display logs per epoch step
     if epoch % display_step == 0:
         logging.info("Epoch: {}, Cost: {:.9f}".format(epoch + 1, avg_cost))
-        saver.save(vae.sess, '{}cnnae'.format(logdir), global_step=epoch)
+
+    vae.saver.save(vae.sess, '{}ae-cnn'.format(logdir), global_step=epoch)
 # print("Total cost: " + str(vae.calc_total_cost(X_test)))
