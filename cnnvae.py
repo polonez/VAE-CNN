@@ -118,12 +118,6 @@ class CNNVAE(object):
 
         self.saver = tf.train.Saver()
 
-    def restore(self):
-        tf.reset_default_graph()
-        latest_checkpoint = tf.train.latest_checkpoint(self.logdir)
-        if latest_checkpoint is not None:
-            self.saver.restore(self.sess, latest_checkpoint)
-
     def resize_image(self, x):
         return self.sess.run(self.x, feed_dict={self.x: x})
 
@@ -136,8 +130,25 @@ class CNNVAE(object):
     def reconstruct(self, x):
         return self.sess.run(self.reconstruction, feed_dict={self.x: x})
 
-    def partial_fit(self, x, epoch):
-        cost, _, kl_divergence, summary = self.sess.run(
-            (self.cost, self.optimizer, self.KL_divergence, self.merged_summary_op),
+    def partial_fit(self, x):
+        cost, _, kl_divergence = self.sess.run(
+            (self.cost, self.optimizer, self.KL_divergence),
             feed_dict={self.x: x})
-        return cost, kl_divergence, summary
+        return cost, kl_divergence
+
+    def get_summary(self, x):
+        summary = self.sess.run(
+            (self.merged_summary_op), feed_dict={self.x: x}
+        )
+        return summary
+
+    def save(self, epoch):
+        self.saver.save(self.sess, '{}vae-cnn'.format(self.logdir), global_step=epoch + 1)
+
+    def restore(self):
+        latest_checkpoint = tf.train.latest_checkpoint(self.logdir)
+        global_step = 0
+        if latest_checkpoint:
+            self.saver.restore(self.sess, latest_checkpoint)
+            global_step = int(latest_checkpoint.split("/")[-1].split("-")[-1])
+        return global_step

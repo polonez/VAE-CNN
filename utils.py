@@ -47,6 +47,18 @@ def write_to_tfrecord(raw_data_pattern='data/*.jpg', tfrecord_name='tfrecord/cel
                 tf_writer.write(example.SerializeToString())
 
 
+def read_from_jpg(file_pattern="data/*.jpg", batch_size=128, partial=None):
+    globbed = glob(file_pattern)
+    imgs = []
+    if partial:
+        imgs = [imageio.imread(path) for path in tqdm(globbed[:partial])]
+    else:
+        imgs = [imageio.imread(path) for path in tqdm(globbed)]
+    imgs = np.array(imgs) / 255.0
+    batches = [imgs[i:i + batch_size] for i in range(0, len(imgs), batch_size)]
+    return batches, len(imgs)
+
+
 def read_from_tfrecord(file_pattern="tfrecord/celebA-*-of-*"):
     read_imgs = []
     cnt = 0
