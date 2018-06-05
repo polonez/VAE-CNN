@@ -54,8 +54,8 @@ class CNNVAE(object):
             z_mean = net[:, :latent_dim]
             z_sigma = tf.nn.softplus(net[:, latent_dim:])
             self.z = tf.distributions.Normal(loc=z_mean, scale=z_sigma)
+            assert self.z.reparameterization_type == tf.distributions.FULLY_REPARAMETERIZED
 
-        assert self.z.reparameterization_type == tf.distributions.FULLY_REPARAMETERIZED
 
         with tf.variable_scope('decoder', reuse=tf.AUTO_REUSE):
             net = tf.contrib.layers.fully_connected(self.z.sample(),
@@ -100,8 +100,9 @@ class CNNVAE(object):
             self.cost = tf.reduce_mean(tf.pow(tf.subtract(self.reconstruction, self.x), 2.0))
             normdist = tf.distributions.Normal(loc=np.zeros(latent_dim, dtype=np.float32),
                                                scale=np.ones(latent_dim, dtype=np.float32))
-            self.KL_divergence = tf.reduce_mean(tf.distributions.kl_divergence(self.z, normdist))
+
             optimizer = tf.train.AdamOptimizer(self.lr)
+            self.KL_divergence = tf.reduce_mean(tf.distributions.kl_divergence(self.z, normdist))
             self.optimizer = optimizer.minimize(self.cost + self.KL_divergence)
 
         self.sess.run(tf.global_variables_initializer())

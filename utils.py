@@ -1,5 +1,6 @@
 import os
 from glob import glob
+import tarfile
 import tensorflow as tf
 import numpy as np
 import sklearn.preprocessing as prep
@@ -56,6 +57,18 @@ def read_from_jpg(file_pattern="data/*.jpg", batch_size=128, partial=None):
         imgs = [imageio.imread(path) for path in tqdm(globbed)]
     imgs = np.array(imgs) / 255.0
     batches = [imgs[i:i + batch_size] for i in range(0, len(imgs), batch_size)]
+    return batches, len(imgs)
+
+
+def read_from_tar_gz(compressed_filename, batch_size=128):
+    imgs = []
+    with tarfile.open(compressed_filename, 'r:gz') as tfile:
+        for mem in tqdm(tfile.getmembers()):
+            if mem.name.lower().endswith('jpg'):
+                e = tfile.extractfile(mem)
+                imgs.append(imageio.imread(e))
+    imgs = np.array(imgs) / 255.0
+    batches = [imgs[i: i + batch_size] for i in range(0, len(imgs), batch_size)]
     return batches, len(imgs)
 
 

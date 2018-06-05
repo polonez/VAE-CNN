@@ -8,13 +8,14 @@ import utils
 logging.set_verbosity(logging.INFO)
 logging.info("read image data...")
 # splitted_train_data, n_samples = utils.read_from_tfrecord()
-splitted_train_data, n_samples = utils.read_from_jpg(partial=51200)
+splitted_train_data, n_samples = utils.read_from_tar_gz(compressed_filename="train_data.tar.gz")
+# splitted_train_data, n_samples = utils.read_from_jpg(partial=51200)
 # n_samples = 25600
 logging.info("read {} images".format(n_samples))
 training_epochs = 1000
 lr = 3e-7
 latent_dim = 100
-batch_size = 128
+batch_size = 256
 
 envvar = "#sample: {}, lr: {}, latent_dim: {}, batch_size: {}".format(n_samples, lr, latent_dim, batch_size)
 
